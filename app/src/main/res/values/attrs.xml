@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="CustomImageButton">
+        <attr name="flash_type" format="enum">
+            <enum name="flash_auto" value="1" />
+            <enum name="flash_on" value="2" />
+            <enum name="flash_off" value="3" />
+        </attr>
+        <attr name="state_flash_auto" format="boolean"/>
+        <attr name="state_flash_on" format="boolean"/>
+        <attr name="state_flash_off" format="boolean"/>
+
+    </declare-styleable>
+</resources>

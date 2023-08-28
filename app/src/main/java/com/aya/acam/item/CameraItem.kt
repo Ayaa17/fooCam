@@ -7,22 +7,20 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
-import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.video.*
+import androidx.camera.view.CameraController
 import androidx.camera.view.PreviewView
+import androidx.camera.view.video.AudioConfig
+import androidx.camera.view.video.ExperimentalVideo
 import androidx.core.content.ContextCompat
 import androidx.core.util.Consumer
 import androidx.databinding.ObservableField
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.viewModelScope
 import com.aya.acam.CameraManager
 import com.aya.acam.utils.MediaUtils
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import timber.log.Timber
 
 abstract class CameraItem {
@@ -30,8 +28,11 @@ abstract class CameraItem {
     abstract val type: Int
     var previewView: PreviewView? = null
     protected var lifecycleOwner: LifecycleOwner? = null
-    protected var lensFacingState: ObservableField<Int> = ObservableField(-1)
+    protected var cameraController: CameraController? = null
+    protected val lensFacingState: ObservableField<Int> =
+        ObservableField(CameraManager.LENS_FACING_BACK)
 
+    protected var photoTapToFocusState: LiveData<Int>? = null
 
     fun getTypeString(): String {
         return when (type) {
@@ -43,13 +44,28 @@ abstract class CameraItem {
 
     abstract fun starCamera(
         lifecycleOwner: LifecycleOwner,
-        lensFacingMode: Int = CameraManager.LENS_FACING_BACK
+        lensFacingMode: Int = lensFacingState.get()!!
     )
 
     abstract fun shoot()
     abstract fun release()
     abstract fun switchFacing()
-    abstract fun focus(x: Float, y: Float)
+
+//    open fun focus(x: Float, y: Float) {
+//        fixme:already implemented in previewView
+//        previewView?.let {
+//            Timber.d("focus $x,$y")
+//            val factory = it.meteringPointFactory
+//            val point = factory.createPoint(x, y)
+//            val action = FocusMeteringAction.Builder(point).disableAutoCancel().build()
+//            cameraManager?.startFocus(action)
+//        }
+//    }
+
+//    open fun setZoom(z: Float) {
+//        fixme:already implemented in previewView
+//        cameraManager?.zoom(z)
+//    }
 
     companion object {
         const val TAG_PHOTO = 1
@@ -66,33 +82,24 @@ class PhotoState(private val application: Application, private val cameraManager
     override val type: Int = 1
 
     var photoFlashState: ObservableField<Int> = ObservableField(CameraManager.FLASH_AUTO)
-    private var imageCapture: ImageCapture? = null
-    private var photoTapToFocusState: LiveData<Int>? = null
-
     override fun starCamera(lifecycleOwner: LifecycleOwner, lensFacingMode: Int) {
-        previewView?.also { _previewView ->
+        Timber.d("starCamera : lensFacingMode: $lensFacingMode")
+        previewView?.also { it ->
 
-            imageCapture =
-                ImageCapture.Builder().setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                    .build()
+            cameraManager?.startCameraWithController(it, lifecycleOwner, lensFacingMode)
+            this.lifecycleOwner = lifecycleOwner
+            this.lensFacingState.set(lensFacingMode)
+            this.cameraController = it.controller?.apply {
+                this.setEnabledUseCases(CameraController.IMAGE_CAPTURE)
+                this@apply.imageCaptureFlashMode =
+                    photoFlashState.get() ?: CameraManager.FLASH_AUTO
 
-            imageCapture = ImageCapture.Builder().build().also {
-
-                cameraManager?.startCamera(
-                    _previewView,
-                    lifecycleOwner,
-                    it,
-                    lensFacingMode
-                )
-                this.lifecycleOwner = lifecycleOwner
-                this.lensFacingState.set(lensFacingMode)
-                this.photoTapToFocusState = _previewView.controller?.tapToFocusState?.apply {
-                    this.observe(lifecycleOwner) {
+                //fixme: for debug
+                this@PhotoState.photoTapToFocusState = this.tapToFocusState.also {
+                    it.observe(lifecycleOwner) {
                         Timber.d("tapToFocusState: $it")
                     }
                 }
-                Timber.d("photoTapToFocusState $photoTapToFocusState")
-                it.flashMode = photoFlashState.get() ?: CameraManager.FLASH_AUTO
             }
         }
     }
@@ -108,7 +115,8 @@ class PhotoState(private val application: Application, private val cameraManager
             MediaUtils.imageUriSd,
             contentValues
         ).build()
-        imageCapture?.takePicture(outputOptions, ContextCompat.getMainExecutor(application),
+
+        cameraController?.takePicture(outputOptions, ContextCompat.getMainExecutor(application),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                     //Todo: remove toast
@@ -142,7 +150,7 @@ class PhotoState(private val application: Application, private val cameraManager
 
     fun switchFlashMode(mode: Int) {
         try {
-            imageCapture?.flashMode = mode
+            cameraController?.imageCaptureFlashMode = mode
             photoFlashState.set(mode)
         } catch (e: IllegalArgumentException) {
             Timber.e(e)
@@ -157,39 +165,22 @@ class PhotoState(private val application: Application, private val cameraManager
                 CameraManager.LENS_FACING_BACK -> CameraManager.LENS_FACING_FRONT
                 CameraManager.LENS_FACING_FRONT -> CameraManager.LENS_FACING_BACK
                 else -> CameraManager.LENS_FACING_UNKNOWN
-
             }
 
         this.lifecycleOwner?.let {
             starCamera(it, nextState)
         }
     }
-
-    override fun focus(x: Float, y: Float) {
-
-        //fixme:already implemented in previewView
-//        previewView?.let {
-//            Timber.d("focus $x,$y")
-//            val factory = it.meteringPointFactory
-//            val point = factory.createPoint(x, y)
-//            val action = FocusMeteringAction.Builder(point).disableAutoCancel().build()
-//            cameraManager?.startFocus(action)
-//        }
-    }
-
-    //fixme:
-    fun setZoom(z: Float) {
-        cameraManager?.zoom(z)
-    }
-
 }
 
-class RecordState(private val application: Application, private val cameraManager: CameraManager?) :
+class RecordState(
+    private val application: Application,
+    private val cameraManager: CameraManager?
+) :
     CameraItem() {
 
     override val type: Int = 2
 
-    private var videoCapture: VideoCapture<Recorder>? = null
     private var currentRecording: Recording? = null
     private var audioEnabled = false
     private var recordingState: VideoRecordEvent? = null
@@ -197,22 +188,36 @@ class RecordState(private val application: Application, private val cameraManage
 
     var torch: ObservableField<Boolean> = ObservableField(false)
 
+    @ExperimentalVideo
     override fun starCamera(lifecycleOwner: LifecycleOwner, lensFacingMode: Int) {
 
-        previewView?.also { _previewView ->
-            val recorder = Recorder.Builder().build()
-            videoCapture = VideoCapture.withOutput(recorder).also {
-                cameraManager?.startCamera(_previewView, lifecycleOwner, it, lensFacingMode)
-                this.lifecycleOwner = lifecycleOwner
-                lensFacingState.set(lensFacingMode)
+        previewView?.also { it ->
+            cameraManager?.startCameraWithController(it, lifecycleOwner, lensFacingMode)
+            this.lifecycleOwner = lifecycleOwner
+            lensFacingState.set(lensFacingMode)
+
+            this.cameraController = it.controller?.apply {
+                this.setEnabledUseCases(CameraController.VIDEO_CAPTURE)
+
+                this.torchState.observe(lifecycleOwner) {
+                    torch.set(it == 1)
+                }
+
+                //fixme: for debug
+                this@RecordState.photoTapToFocusState = this.tapToFocusState.also {
+                    it.observe(lifecycleOwner) {
+                        Timber.d("tapToFocusState: $it")
+                    }
+                }
             }
         }
     }
 
+    @ExperimentalVideo
     override fun shoot() {
         Timber.d("videoCaptureClick")
-        videoCapture?.run {
-            if (currentRecording != null) {
+        cameraController?.run {
+            if (this.isRecording && currentRecording != null) {
                 stopRecording()
             } else {
                 startRecording()
@@ -221,13 +226,18 @@ class RecordState(private val application: Application, private val cameraManage
     }
 
     @SuppressLint("MissingPermission")
+    @ExperimentalVideo
     private fun startRecording() {
         // create MediaStoreOutputOptions for our recorder: resulting our recording!
         val name = "${System.currentTimeMillis()}" + ".mp4"
         val contentValues = ContentValues().apply {
             put(MediaStore.Video.Media.DISPLAY_NAME, name)
+            put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(MediaStore.Video.Media.RELATIVE_PATH, "${Environment.DIRECTORY_DCIM}/Camera/")
+                put(
+                    MediaStore.Video.Media.RELATIVE_PATH,
+                    "${Environment.DIRECTORY_DCIM}/Camera/"
+                )
             }
         }
 
@@ -238,12 +248,12 @@ class RecordState(private val application: Application, private val cameraManage
             .setContentValues(contentValues)
             .build()
 
-        // configure Recorder and Start recording to the mediaStoreOutput.
-        currentRecording = videoCapture?.run {
-            this.output.prepareRecording(application, mediaStoreOutput)
-                .apply { if (audioEnabled) withAudioEnabled() }
-                .start(mainThreadExecutor, captureListener)
-        }
+        currentRecording = cameraController?.startRecording(
+            mediaStoreOutput,
+            AudioConfig.create(audioEnabled),
+            mainThreadExecutor,
+            captureListener
+        )
 
     }
 
@@ -272,8 +282,6 @@ class RecordState(private val application: Application, private val cameraManage
 //                )
 //            }
 //        }
-
-
     }
 
     /**
@@ -310,6 +318,7 @@ class RecordState(private val application: Application, private val cameraManage
         Timber.d("updateUI: ${event.recordingStats}")
     }
 
+    @ExperimentalVideo
     override fun switchFacing() {
 
         val currentFacing = lensFacingState.get()
@@ -326,36 +335,23 @@ class RecordState(private val application: Application, private val cameraManage
         }
     }
 
-    override fun focus(x: Float, y: Float) {
-        //Todo:
-    }
-
     fun switchTorch() {
-        //Todo:handle torch state in recordState
         torch.get()?.let {
             if (it) {
-                closeFlash()
+                closeTorch()
             } else {
-                openFlash()
+                openTorch()
             }
         }
 
     }
 
-    private fun openFlash() {
-        cameraManager?.switchTorch(true)?.also {
-            if (it) {
-                torch.set(true)
-            }
-        }
+    private fun openTorch() {
+        cameraManager?.switchTorch(true)
     }
 
-    private fun closeFlash() {
-        cameraManager?.switchTorch(false)?.also {
-            if (it) {
-                torch.set(false)
-            }
-        }
+    private fun closeTorch() {
+        cameraManager?.switchTorch(false)
     }
 
     override fun release() {

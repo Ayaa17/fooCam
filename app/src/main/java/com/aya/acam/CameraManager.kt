@@ -5,6 +5,7 @@ import androidx.camera.core.*
 
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.*
+import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
@@ -15,7 +16,6 @@ class CameraManager(private val context: Context) {
     private var cameraProvider: ProcessCameraProvider? = null
     private var camera: Camera? = null
     val cameraCapabilities = mutableListOf<Quality>()
-
 
     init {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
@@ -66,6 +66,30 @@ class CameraManager(private val context: Context) {
             }
 
         }, ContextCompat.getMainExecutor(context))
+    }
+
+    fun startCameraWithController(
+        previewView: PreviewView,
+        lifecycleOwner: LifecycleOwner,
+        cameraSelectorType: Int = LENS_FACING_BACK
+    ) {
+        releaseCamera()
+        // Set up the CameraController
+        val cameraController = LifecycleCameraController(context)
+
+        val _cameraSelector = when (cameraSelectorType) {
+            LENS_FACING_FRONT -> CameraSelector.DEFAULT_FRONT_CAMERA
+            LENS_FACING_BACK -> CameraSelector.DEFAULT_BACK_CAMERA
+            //Todo: unsupport LENS_FACING_EXTERNAL and LENS_FACING_UNKNOWN
+            else -> CameraSelector.DEFAULT_BACK_CAMERA
+        }
+        Timber.d("startCameraWithController lensFacingMode: $cameraSelectorType")
+        cameraController.cameraSelector = _cameraSelector
+
+        cameraController.bindToLifecycle(lifecycleOwner)
+
+        // Attach the CameraController to PreviewView
+        previewView.controller = cameraController
     }
 
 
@@ -133,7 +157,7 @@ class CameraManager(private val context: Context) {
     }
 
     fun zoom(z: Float) {
-        camera?.let { it.cameraControl.setLinearZoom(z)}
+        camera?.let { it.cameraControl.setLinearZoom(z) }
     }
 
     fun releaseCamera() {

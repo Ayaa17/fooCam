@@ -1,5 +1,6 @@
 package com.aya.acam
 
+import android.annotation.SuppressLint
 import android.app.Application
 import androidx.camera.view.PreviewView
 import androidx.lifecycle.*

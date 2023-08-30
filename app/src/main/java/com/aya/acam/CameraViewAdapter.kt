@@ -1,12 +1,11 @@
 package com.aya.acam
 
-import android.annotation.SuppressLint
 import androidx.recyclerview.widget.RecyclerView
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.camera.view.PreviewView
+import com.aya.acam.customView.TouchBoundingBoxView
 import com.aya.acam.databinding.CameraPhotoItemBinding
 import com.aya.acam.databinding.CameraVideoItemBinding
 import com.aya.acam.item.CameraItem
@@ -47,6 +46,11 @@ class CameraViewAdapter(private val viewModel: CameraViewModel) :
         // 在此处设置视图的内容，可以根据 position 来设置不同的内容
         holder.bindView()
         viewModel.views.get(position).previewView = holder.previewView
+        holder.previewView?.setOnTouchListener { v, event ->
+            v.onTouchEvent(event)
+            holder.boundingBoxView?.onTouchEvent(event)
+            return@setOnTouchListener true
+        }
     }
 
     override fun getItemCount(): Int {
@@ -61,10 +65,11 @@ class CameraViewAdapter(private val viewModel: CameraViewModel) :
 
     inner class ViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
         var previewView: PreviewView? = null
+        var boundingBoxView:TouchBoundingBoxView? = null
         fun bindView() {
             // 在此处设置视图的内容
             previewView = view.findViewById(R.id.preview_view)
-
+            boundingBoxView = view.findViewById(R.id.touchBoundingBoxView)
         }
     }
 }

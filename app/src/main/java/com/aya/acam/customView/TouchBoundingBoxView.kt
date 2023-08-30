@@ -1,10 +1,8 @@
 package com.aya.acam.customView
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Rect
+import android.graphics.*
+import android.os.CountDownTimer
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.ViewConfiguration
@@ -16,17 +14,33 @@ class TouchBoundingBoxView(context: Context, attrs: AttributeSet? = null) :
 
     private val boundingBox = Rect()
     private val paint = Paint()
+    private var shouldClearCanvas = false
+    private val timer: CountDownTimer
 
     init {
         paint.color = Color.RED
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 10f
 
+        timer = object : CountDownTimer(3000, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+            }
+
+            override fun onFinish() {
+                clearCanvas()
+            }
+        }
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        canvas.drawRect(boundingBox, paint)
+
+        if (shouldClearCanvas) {
+            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+            shouldClearCanvas = false
+        } else {
+            canvas.drawRect(boundingBox, paint)
+        }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -37,16 +51,28 @@ class TouchBoundingBoxView(context: Context, attrs: AttributeSet? = null) :
                 < ViewConfiguration.getLongPressTimeout())
 
         Timber.d("onTouchEvent : ${event.action} / ${isSingleTouch} / ${event.x} / ${event.y}")
-
-        boundingBox.set(
-            (event.x - 50).toInt(),  // Left
-            (event.y - 50).toInt(),  // Top
-            (event.x + 50).toInt(),  // Right
-            (event.y + 50).toInt()   // Bottom
-        )
-        invalidate() // Request redraw
-        //Todo: add ui feature here
+        if (isSingleTouch && isUpEvent && notALongPress) {
+            boundingBox.set(
+                (event.x - 50).toInt(),  // Left
+                (event.y - 50).toInt(),  // Top
+                (event.x + 50).toInt(),  // Right
+                (event.y + 50).toInt()   // Bottom
+            )
+            timerReset()
+            invalidate() // Request redraw
+            //Todo: add ui feature here
+        }
         return false
+    }
+
+    private fun clearCanvas() {
+        shouldClearCanvas = true
+        invalidate() // Request redraw again to restore previous state
+    }
+
+    private fun timerReset() {
+        timer.cancel()
+        timer.start()
     }
 
 }

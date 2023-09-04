@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
+
         <variable
             name="photoState"
             type="com.aya.acam.item.PhotoState" />
@@ -27,10 +28,13 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="#00FFFFFF"
+            app:ev_max="@{photoState.evMax}"
+            app:ev_min="@{photoState.evMin}"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            app:seekBar_value="@={photoState.seekBarValue}" />
 
         <LinearLayout
             android:layout_width="wrap_content"

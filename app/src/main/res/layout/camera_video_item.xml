@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
+
         <variable
             name="recordState"
             type="com.aya.acam.item.RecordState" />
@@ -20,18 +21,20 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
-        </androidx.camera.view.PreviewView>
+            app:layout_constraintTop_toTopOf="parent" />
 
         <com.aya.acam.customView.TouchBoundingBoxView
             android:id="@+id/touchBoundingBoxView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="#00FFFFFF"
+            app:ev_max="@{recordState.evMax}"
+            app:ev_min="@{recordState.evMin}"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            app:seekBar_value="@={recordState.seekBarValue}" />
 
         <LinearLayout
             android:layout_width="wrap_content"

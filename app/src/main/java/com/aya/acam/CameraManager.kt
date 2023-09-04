@@ -9,6 +9,7 @@ import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LiveData
 import timber.log.Timber
 
 class CameraManager(private val context: Context) {
@@ -136,6 +137,19 @@ class CameraManager(private val context: Context) {
                 cameraCapabilities.clear()
                 cameraCapabilities.addAll(it)
             }
+    }
+
+    //Todo: need def other
+    fun getCameraIndex(lensFacingMode: Int): Int {
+        return when (lensFacingMode) {
+            LENS_FACING_FRONT -> 1
+            LENS_FACING_BACK -> 0
+            else -> 0 //fixme:not handle this now
+        }
+    }
+
+    fun getCameraState(index: Int): LiveData<CameraState>? {
+        return cameraProvider?.availableCameraInfos?.get(index)?.cameraState
     }
 
     fun checkFlashUnit(): Boolean {

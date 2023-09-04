@@ -6,9 +6,14 @@
             <enum name="flash_on" value="2" />
             <enum name="flash_off" value="3" />
         </attr>
-        <attr name="state_flash_auto" format="boolean"/>
-        <attr name="state_flash_on" format="boolean"/>
-        <attr name="state_flash_off" format="boolean"/>
+        <attr name="state_flash_auto" format="boolean" />
+        <attr name="state_flash_on" format="boolean" />
+        <attr name="state_flash_off" format="boolean" />
+    </declare-styleable>
 
+    <declare-styleable name="TouchBoundingBoxView">
+        <attr name="ev_min" format="integer" value="0" />
+        <attr name="ev_max" format="integer" value="0" />
+        <attr name="seekBar_value" format="integer" value="0" />
     </declare-styleable>
 </resources>

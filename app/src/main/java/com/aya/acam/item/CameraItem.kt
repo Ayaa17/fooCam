@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
+import androidx.camera.core.CameraState
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.video.*
@@ -16,6 +17,7 @@ import androidx.camera.view.video.AudioConfig
 import androidx.camera.view.video.ExperimentalVideo
 import androidx.core.content.ContextCompat
 import androidx.core.util.Consumer
+import androidx.databinding.Observable
 import androidx.databinding.ObservableField
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
@@ -32,7 +34,12 @@ abstract class CameraItem {
     protected val lensFacingState: ObservableField<Int> =
         ObservableField(CameraManager.LENS_FACING_BACK)
 
+    protected var cameraState: LiveData<CameraState>? = null
     protected var photoTapToFocusState: LiveData<Int>? = null
+
+    val evMin = ObservableField(0)
+    val evMax = ObservableField(0)
+    var seekBarValue = ObservableField<Int>(0)
 
     fun getTypeString(): String {
         return when (type) {
@@ -42,14 +49,49 @@ abstract class CameraItem {
         }
     }
 
-    abstract fun starCamera(
+    open fun starCamera(
         lifecycleOwner: LifecycleOwner,
         lensFacingMode: Int = lensFacingState.get()!!
-    )
+    ) {
+        evMin.set(0)
+        evMax.set(0)
+        Timber.d("starCamera : lensFacingMode: $lensFacingMode")
+    }
+
+    fun startListenCameraState(cameraManager: CameraManager?, index: Int) {
+        cameraState = cameraManager?.getCameraState(
+            index
+        )?.also { it ->
+            it.observe(lifecycleOwner!!) {
+                Timber.d(
+                    "starCamera CameraState index: $index /type: ${it.type}"
+                )
+                if (it.type == CameraState.Type.OPEN) {
+                    setEvRange()
+                }
+            }
+        }
+    }
 
     abstract fun shoot()
     abstract fun release()
     abstract fun switchFacing()
+
+    fun setEvRange() {
+        Timber.d("setEV")
+        cameraController?.cameraInfo?.exposureState?.let {
+            Timber.d("setEV exposureCompensationRange ${it.exposureCompensationRange}")
+            Timber.d("setEV exposureCompensationIndex ${it.exposureCompensationIndex}")
+            Timber.d("setEV exposureCompensationStep ${it.exposureCompensationStep}")
+            Timber.d("setEV isExposureCompensationSupported ${it.isExposureCompensationSupported}")
+            evMin.set(it.exposureCompensationRange.lower)
+            evMax.set(it.exposureCompensationRange.upper)
+        }
+    }
+
+    fun setExposureCompensation(index: Int) {
+        cameraController?.cameraControl?.setExposureCompensationIndex(index);
+    }
 
 //    open fun focus(x: Float, y: Float) {
 //        fixme:already implemented in previewView
@@ -83,8 +125,17 @@ class PhotoState(private val application: Application, private val cameraManager
 
     var photoFlashState: ObservableField<Int> = ObservableField(CameraManager.FLASH_AUTO)
     override fun starCamera(lifecycleOwner: LifecycleOwner, lensFacingMode: Int) {
-        Timber.d("starCamera : lensFacingMode: $lensFacingMode")
+        super.starCamera(lifecycleOwner, lensFacingMode)
+
         previewView?.also { it ->
+
+            seekBarValue.addOnPropertyChangedCallback(object :
+                Observable.OnPropertyChangedCallback() {
+                override fun onPropertyChanged(sender: Observable?, propertyId: Int) {
+                    Timber.d("seekBarValue seekBarValue: $sender / $propertyId / ${seekBarValue.get()}")
+                    setExposureCompensation(seekBarValue.get()!!)
+                }
+            })
 
             cameraManager?.startCameraWithController(it, lifecycleOwner, lensFacingMode)
             this.lifecycleOwner = lifecycleOwner
@@ -93,6 +144,11 @@ class PhotoState(private val application: Application, private val cameraManager
                 this.setEnabledUseCases(CameraController.IMAGE_CAPTURE)
                 this@apply.imageCaptureFlashMode =
                     photoFlashState.get() ?: CameraManager.FLASH_AUTO
+
+                startListenCameraState(
+                    cameraManager!!,
+                    cameraManager.getCameraIndex(lensFacingMode)
+                )
 
                 //fixme: for debug
                 this@PhotoState.photoTapToFocusState = this.tapToFocusState.also {
@@ -115,7 +171,6 @@ class PhotoState(private val application: Application, private val cameraManager
             MediaUtils.imageUriSd,
             contentValues
         ).build()
-
         cameraController?.takePicture(outputOptions, ContextCompat.getMainExecutor(application),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
@@ -190,8 +245,17 @@ class RecordState(
 
     @ExperimentalVideo
     override fun starCamera(lifecycleOwner: LifecycleOwner, lensFacingMode: Int) {
-
+        super.starCamera(lifecycleOwner, lensFacingMode)
         previewView?.also { it ->
+
+            seekBarValue.addOnPropertyChangedCallback(object :
+                Observable.OnPropertyChangedCallback() {
+                override fun onPropertyChanged(sender: Observable?, propertyId: Int) {
+                    Timber.d("seekBarValue seekBarValue: $sender / $propertyId / ${seekBarValue.get()}")
+                    setExposureCompensation(seekBarValue.get()!!)
+                }
+            })
+
             cameraManager?.startCameraWithController(it, lifecycleOwner, lensFacingMode)
             this.lifecycleOwner = lifecycleOwner
             lensFacingState.set(lensFacingMode)
@@ -202,6 +266,11 @@ class RecordState(
                 this.torchState.observe(lifecycleOwner) {
                     torch.set(it == 1)
                 }
+
+                startListenCameraState(
+                    cameraManager!!,
+                    cameraManager.getCameraIndex(lensFacingMode)
+                )
 
                 //fixme: for debug
                 this@RecordState.photoTapToFocusState = this.tapToFocusState.also {

@@ -57,7 +57,8 @@ class TouchBoundingBoxView(context: Context, attrs: AttributeSet? = null) :
         super.onDraw(canvas)
 
         if (shouldClearCanvas) {
-            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+            //Filter imageview will clear at the sametime
+//            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
             shouldClearCanvas = false
         } else if (shouldUpdateCanvas) {
             canvas.drawRect(boundingBox, paint)

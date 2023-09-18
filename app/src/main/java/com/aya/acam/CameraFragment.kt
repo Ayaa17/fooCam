@@ -2,11 +2,8 @@ package com.aya.acam
 
 import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
+import android.view.*
 import androidx.fragment.app.Fragment
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.view.ViewTreeObserver
 import androidx.navigation.fragment.findNavController
 import androidx.viewpager2.widget.ViewPager2
 import com.aya.acam.databinding.FragmentCameraBinding
@@ -40,6 +37,7 @@ class CameraFragment : Fragment() {
     ): View? {
 
         binding = FragmentCameraBinding.inflate(inflater)
+        binding.cmViewModel = this.viewModel
 
         binding.imageView.setOnClickListener { navigateToGalleryFragment() }
 
@@ -100,9 +98,38 @@ class CameraFragment : Fragment() {
         findNavController().navigate(R.id.action_cameraFragment_to_galleryFragment)
     }
 
+    override fun onStart() {
+        super.onStart()
+        orientationEventListener.enable()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        orientationEventListener.disable()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         viewModel.releaseCamera()
+    }
+
+    private val orientationEventListener by lazy {
+        object : OrientationEventListener(requireContext()) {
+            override fun onOrientationChanged(orientation: Int) {
+                if (orientation == ORIENTATION_UNKNOWN) {
+                    return
+                }
+
+                val rotation = when (orientation) {
+                    in 45 until 135 -> 270F
+                    in 135 until 225 -> 180F
+                    in 225 until 315 -> 90F
+                    else -> 0F
+                }
+
+                viewModel.orientationObservable.set(rotation)
+            }
+        }
     }
 
 }

@@ -1,8 +1,8 @@
 package com.aya.acam
 
-import android.annotation.SuppressLint
 import android.app.Application
 import androidx.camera.view.PreviewView
+import androidx.databinding.ObservableField
 import androidx.lifecycle.*
 import com.aya.acam.item.PhotoState
 import com.aya.acam.item.RecordState
@@ -15,6 +15,8 @@ import kotlinx.coroutines.launch
 class CameraViewModel(private val application: Application) : AndroidViewModel(application) {
 
     private var cameraManager: CameraManager? = null
+
+    val orientationObservable = ObservableField(0F)
 
     var photoState: PhotoState? = null
     var recordState: RecordState? = null
@@ -67,7 +69,6 @@ class CameraViewModel(private val application: Application) : AndroidViewModel(a
 
     override fun onCleared() {
         super.onCleared()
-
         Timber.d("onCleared")
     }
 

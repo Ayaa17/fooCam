@@ -3,6 +3,11 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <data>
+        <variable
+            name="cmViewModel"
+            type="com.aya.acam.CameraViewModel" />
+    </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -71,6 +76,7 @@
             android:layout_marginBottom="10dp"
             android:background="#FF0000"
             android:scaleType="fitXY"
+            android:rotation="@{cmViewModel.orientationObservable}"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintDimensionRatio="1:1"
             app:layout_constraintEnd_toStartOf="@+id/guideline3"
@@ -88,6 +94,7 @@
             android:layout_marginBottom="20dp"
             android:background="@drawable/shutter_bg"
             android:scaleType="centerInside"
+            android:rotation="@{cmViewModel.orientationObservable}"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintDimensionRatio="1:1"
             app:layout_constraintEnd_toEndOf="parent"

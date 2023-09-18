@@ -25,8 +25,7 @@ import androidx.lifecycle.LiveData
 import com.aya.acam.CameraManager
 import com.aya.acam.utils.MediaUtils
 import com.theeasiestway.yuv.YuvUtils
-import jp.co.cyberagent.android.gpuimage.GPUImage
-import jp.co.cyberagent.android.gpuimage.GPUImageGrayscaleFilter
+import jp.co.cyberagent.android.gpuimage.*
 import timber.log.Timber
 import java.io.IOException
 import java.nio.ByteBuffer
@@ -603,6 +602,26 @@ class FilterState(
         this.lifecycleOwner?.let {
             starCamera(it, nextState)
         }
+    }
+
+    fun switchFilter(id: Long) {
+        val filter: GPUImageFilter =
+            when (id.toInt()) {
+                0 -> GPUImageGrayscaleFilter()
+                1 -> GPUImageBulgeDistortionFilter()
+                2 -> GPUImageEmbossFilter()
+                3 -> GPUImageSharpenFilter()
+                4 -> GPUImageColorInvertFilter()
+                5 -> GPUImageSmoothToonFilter()
+                6 -> GPUImageDissolveBlendFilter()
+                7 -> GPUImageBoxBlurFilter()
+                else -> GPUImageGrayscaleFilter()
+            }
+        setFilter(filter)
+    }
+
+    private fun setFilter(filter: GPUImageFilter) {
+        gpuImage.setFilter(filter)
     }
 }
 

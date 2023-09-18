@@ -1,3 +1,14 @@
 <resources>
     <string name="app_name">ACam</string>
+
+    <string-array name="planets_array">
+        <item>Grayscale</item>
+        <item>BulgeDistortion</item>
+        <item>Emboss</item>
+        <item>Sharpen</item>
+        <item>ColorInvert</item>
+        <item>SmoothToon</item>
+        <item>DissolveBlend</item>
+        <item>BoxBlur</item>
+    </string-array>
 </resources>

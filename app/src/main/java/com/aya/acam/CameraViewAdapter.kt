@@ -4,6 +4,8 @@ import androidx.recyclerview.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
+import android.widget.Spinner
 import androidx.camera.view.PreviewView
 import com.aya.acam.customView.TouchBoundingBoxView
 import com.aya.acam.databinding.CameraFilterItemBinding
@@ -26,7 +28,7 @@ class CameraViewAdapter(private val viewModel: CameraViewModel) :
                 return ViewHolder(binding.root)
             }
 
-            CameraItem.TAG_VIDEO ->{
+            CameraItem.TAG_VIDEO -> {
                 val layoutInflater = LayoutInflater.from(parent.context)
                 val binding = CameraVideoItemBinding.inflate(layoutInflater, parent, false)
                 binding.recordState = viewModel.recordState
@@ -59,6 +61,17 @@ class CameraViewAdapter(private val viewModel: CameraViewModel) :
             holder.boundingBoxView?.onTouchEvent(event)
             return@setOnTouchListener true
         }
+
+        ArrayAdapter.createFromResource(
+            this.viewModel.getApplication(),
+            R.array.planets_array,
+            android.R.layout.simple_spinner_item
+        ).also { adapter ->
+            // Specify the layout to use when the list of choices appears
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            // Apply the adapter to the spinner
+            holder.spinner?.adapter = adapter
+        }
     }
 
     override fun getItemCount(): Int {
@@ -73,11 +86,13 @@ class CameraViewAdapter(private val viewModel: CameraViewModel) :
 
     inner class ViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
         var previewView: PreviewView? = null
-        var boundingBoxView:TouchBoundingBoxView? = null
+        var boundingBoxView: TouchBoundingBoxView? = null
+        var spinner: Spinner? = null
         fun bindView() {
             // 在此处设置视图的内容
             previewView = view.findViewById(R.id.preview_view)
             boundingBoxView = view.findViewById(R.id.touchBoundingBoxView)
+            spinner = view.findViewById(R.id.spinner)
         }
     }
 }

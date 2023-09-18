@@ -86,13 +86,11 @@ class CameraManager(private val context: Context) {
         }
         Timber.d("startCameraWithController lensFacingMode: $cameraSelectorType")
         cameraController.cameraSelector = _cameraSelector
-
         cameraController.bindToLifecycle(lifecycleOwner)
 
         // Attach the CameraController to PreviewView
         previewView.controller = cameraController
     }
-
 
     fun startCamera(
         previewView: PreviewView, lifecycleOwner: LifecycleOwner,

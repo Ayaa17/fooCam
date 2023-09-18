@@ -3,13 +3,13 @@ package com.aya.acam.item
 import android.annotation.SuppressLint
 import android.app.Application
 import android.content.ContentValues
+import android.graphics.Bitmap
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.widget.ImageView
 import android.widget.Toast
-import androidx.camera.core.CameraState
-import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.*
 import androidx.camera.video.*
 import androidx.camera.view.CameraController
 import androidx.camera.view.PreviewView
@@ -17,13 +17,19 @@ import androidx.camera.view.video.AudioConfig
 import androidx.camera.view.video.ExperimentalVideo
 import androidx.core.content.ContextCompat
 import androidx.core.util.Consumer
+import androidx.databinding.BindingAdapter
 import androidx.databinding.Observable
 import androidx.databinding.ObservableField
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
 import com.aya.acam.CameraManager
 import com.aya.acam.utils.MediaUtils
+import com.theeasiestway.yuv.YuvUtils
+import jp.co.cyberagent.android.gpuimage.GPUImage
+import jp.co.cyberagent.android.gpuimage.GPUImageGrayscaleFilter
 import timber.log.Timber
+import java.io.IOException
+import java.nio.ByteBuffer
 
 abstract class CameraItem {
 
@@ -45,6 +51,7 @@ abstract class CameraItem {
         return when (type) {
             TAG_PHOTO -> PHOTO
             TAG_VIDEO -> VIDEO
+            TAG_FILTER -> FILTER
             else -> UNKNOWN
         }
     }
@@ -112,8 +119,10 @@ abstract class CameraItem {
     companion object {
         const val TAG_PHOTO = 1
         const val TAG_VIDEO = 2
+        const val TAG_FILTER = 3
         const val PHOTO = "photo"
         const val VIDEO = "video"
+        const val FILTER = "filter"
         const val UNKNOWN = "unknown"
     }
 }
@@ -121,7 +130,7 @@ abstract class CameraItem {
 class PhotoState(private val application: Application, private val cameraManager: CameraManager?) :
     CameraItem() {
 
-    override val type: Int = 1
+    override val type: Int = TAG_PHOTO
 
     var photoFlashState: ObservableField<Int> = ObservableField(CameraManager.FLASH_AUTO)
     override fun starCamera(lifecycleOwner: LifecycleOwner, lensFacingMode: Int) {
@@ -234,7 +243,7 @@ class RecordState(
 ) :
     CameraItem() {
 
-    override val type: Int = 2
+    override val type: Int = TAG_VIDEO
 
     private var currentRecording: Recording? = null
     private var audioEnabled = false
@@ -429,4 +438,176 @@ class RecordState(
             currentRecording = null
         }
     }
+}
+
+class FilterState(
+    private val application: Application,
+    private val cameraManager: CameraManager?
+) :
+    CameraItem() {
+    override val type: Int = TAG_FILTER
+
+    var photoFlashState: ObservableField<Int> = ObservableField(CameraManager.FLASH_AUTO)
+    val gpuImageFilter = GPUImageGrayscaleFilter()
+    val gpuImage = GPUImage(application)
+    val yuvUtils = YuvUtils()
+    var bitmap: Bitmap? = null
+    var imageResult = ObservableField<Bitmap>()
+
+    init {
+        gpuImage.setFilter(gpuImageFilter)
+    }
+
+    override fun starCamera(lifecycleOwner: LifecycleOwner, lensFacingMode: Int) {
+        super.starCamera(lifecycleOwner, lensFacingMode)
+
+        //Todo: using custom LifeCycleOwner to not showing previewView
+        previewView?.also { it ->
+
+            seekBarValue.addOnPropertyChangedCallback(object :
+                Observable.OnPropertyChangedCallback() {
+                override fun onPropertyChanged(sender: Observable?, propertyId: Int) {
+                    Timber.d("seekBarValue seekBarValue: $sender / $propertyId / ${seekBarValue.get()}")
+                    setExposureCompensation(seekBarValue.get()!!)
+                }
+            })
+
+            cameraManager?.startCameraWithController(it, lifecycleOwner, lensFacingMode)
+
+            this.lifecycleOwner = lifecycleOwner
+            this.lensFacingState.set(lensFacingMode)
+            this.cameraController = it.controller?.apply {
+
+                this.setEnabledUseCases(CameraController.IMAGE_ANALYSIS)
+                this.imageAnalysisBackpressureStrategy
+
+                //Fixme: change resolution here
+//                val outputSize = CameraController.OutputSize(Size(1280, 720))
+//                this.imageAnalysisTargetSize = outputSize
+//                Timber.d("imageCaptureTargetSize: ${this.imageAnalysisTargetSize} ")
+
+                this.setImageAnalysisAnalyzer(ContextCompat.getMainExecutor(this@FilterState.application)) {
+
+                    @ExperimentalGetImage
+                    var yuvFrame = yuvUtils.convertToI420(it.image!!)
+
+                    //对图像进行旋转（由于回调的相机数据是横着的因此需要旋转90度）
+//                    yuvFrame = yuvUtils.rotate(yuvFrame, 90)
+                    //根据图像大小创建Bitmap
+                    bitmap = Bitmap.createBitmap(
+                        yuvFrame.width,
+                        yuvFrame.height,
+                        Bitmap.Config.ARGB_8888
+                    )
+                    //将图像转为Argb格式的并填充到Bitmap上
+                    val argbData = yuvUtils.yuv420ToArgb(yuvFrame)
+                    // 假设ArgbFrame包含了ARGB图像数据
+                    // 将字节数组解码为Bitmap
+                    bitmap!!.copyPixelsFromBuffer(ByteBuffer.wrap(argbData.asArray())) // for displaying argb
+
+                    //利用GpuImage给图像添加滤镜
+                    if (bitmap != null) {
+                        bitmap = gpuImage?.getBitmapWithFilterApplied(bitmap)
+                        imageResult.set(bitmap)
+                    } else {
+                        Timber.e("ImageAnalysisAnalyzer bitmap is null")
+                    }
+                    it.close()
+                }
+
+                Timber.d("this.isImageAnalysisEnabled :${this.isImageAnalysisEnabled}")
+
+                this@apply.imageCaptureFlashMode =
+                    photoFlashState.get() ?: CameraManager.FLASH_AUTO
+
+                startListenCameraState(
+                    cameraManager!!,
+                    cameraManager.getCameraIndex(lensFacingMode)
+                )
+
+                //fixme: for debug
+                this@FilterState.photoTapToFocusState = this.tapToFocusState.also {
+                    it.observe(lifecycleOwner) {
+                        Timber.d("tapToFocusState: $it")
+                    }
+                }
+            }
+        }
+    }
+
+    override fun shoot() {
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Video.Media.DISPLAY_NAME, "${System.currentTimeMillis()}.jpg")
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_DCIM}/Camera/")
+        }
+
+        val uri = this.application.contentResolver.insert(
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+            contentValues
+        )
+
+        try {
+            val outputStream = this.application.contentResolver.openOutputStream(uri!!)
+            bitmap?.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+            outputStream?.close()
+
+            // 图片保存成功，uri 变量包含了保存图片的 URI
+            // Todo: remove toast
+            Toast.makeText(
+                application,
+                "Photo saved: ${uri}",
+                Toast.LENGTH_SHORT
+            ).show()
+
+        } catch (e: IOException) {
+            e.printStackTrace()
+            // 图片保存失败
+            //Todo: remove toast
+            Timber.e("Photo capture failed: ${e.message}")
+            Toast.makeText(
+                application,
+                "Photo capture failed: ${e.message}",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    override fun release() {
+    }
+
+    fun switchNextFlashMode() {
+        val next = photoFlashState.get()?.plus(1)?.rem(3) ?: -1
+        switchFlashMode(next)
+    }
+
+    fun switchFlashMode(mode: Int) {
+        try {
+            cameraController?.imageCaptureFlashMode = mode
+            photoFlashState.set(mode)
+        } catch (e: IllegalArgumentException) {
+            Timber.e(e)
+        }
+    }
+
+    override fun switchFacing() {
+
+        val currentFacing = lensFacingState.get()
+        val nextState =
+            when (currentFacing) {
+                CameraManager.LENS_FACING_BACK -> CameraManager.LENS_FACING_FRONT
+                CameraManager.LENS_FACING_FRONT -> CameraManager.LENS_FACING_BACK
+                else -> CameraManager.LENS_FACING_UNKNOWN
+            }
+
+        this.lifecycleOwner?.let {
+            starCamera(it, nextState)
+        }
+    }
+}
+
+@BindingAdapter("imagetBitmap")
+fun bindImageViewBitmap(imageView: ImageView, bitmap: Bitmap?) {
+    Timber.d("bindImageViewBitmap imagetBitmap: $bitmap")
+    bitmap?.also { imageView.setImageBitmap(it) }
 }

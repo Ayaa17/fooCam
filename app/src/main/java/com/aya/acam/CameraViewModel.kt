@@ -8,6 +8,9 @@ import com.aya.acam.item.PhotoState
 import com.aya.acam.item.RecordState
 import timber.log.Timber
 import com.aya.acam.item.CameraItem
+import com.aya.acam.item.FilterState
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class CameraViewModel(private val application: Application) : AndroidViewModel(application) {
 
@@ -15,6 +18,8 @@ class CameraViewModel(private val application: Application) : AndroidViewModel(a
 
     var photoState: PhotoState? = null
     var recordState: RecordState? = null
+    var filterState: FilterState? = null
+
     val views: MutableList<CameraItem> = mutableListOf()
 
     fun initCamera() {
@@ -27,6 +32,9 @@ class CameraViewModel(private val application: Application) : AndroidViewModel(a
         recordState = RecordState(application, cameraManager).apply {
             views.add(this)
         }
+        filterState = FilterState(application, cameraManager).apply {
+            views.add(this)
+        }
     }
 
     fun startCamera(previewView: PreviewView, lifecycleOwner: LifecycleOwner) {
@@ -35,7 +43,11 @@ class CameraViewModel(private val application: Application) : AndroidViewModel(a
 
     fun startCamera(position: Int, lifecycleOwner: LifecycleOwner) {
         Timber.d("startCamera position:$position")
-        views.get(position).starCamera(lifecycleOwner)
+        viewModelScope.launch {
+            //Fixme: work around now
+            delay(100L)
+            views.get(position).starCamera(lifecycleOwner)
+        }
     }
 
 

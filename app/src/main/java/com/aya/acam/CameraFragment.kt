@@ -48,9 +48,8 @@ class CameraFragment : Fragment() {
         binding.viewPager2.adapter = adapter
         binding.viewPager2.setPageTransformer(ZoomInTransformer())
         binding.viewPager2.isUserInputEnabled = false
-        binding.viewPager2.offscreenPageLimit = 2
+//        binding.viewPager2.offscreenPageLimit = 1
         binding.viewPager2.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-
             override fun onPageSelected(position: Int) {
                 // 页面切换时的操作
                 Timber.d("onPageSelected: $position")
@@ -58,9 +57,8 @@ class CameraFragment : Fragment() {
             }
         })
 
-        TabLayoutMediator(binding.tabLayout, binding.viewPager2) { tab, position ->
+        TabLayoutMediator(binding.tabLayout, binding.viewPager2, true, false) { tab, position ->
             // 根据位置设置选项卡的标题
-
             tab.text = viewModel.views[position].getTypeString()
             tab.customView
         }.attach()
@@ -79,9 +77,13 @@ class CameraFragment : Fragment() {
 
                 galleryViewModel?.mediaItemListLiveData?.observe(viewLifecycleOwner) { list ->
 
-                    val bitmap =
-                        MediaUtils.getBitmap(requireContext(), list.first(), imageViewHeight)
-                    binding.imageView.setImageBitmap(bitmap)
+                    if (list.isEmpty()) {
+                        Timber.d("galleryViewModel :list.isEmpty() ")
+                    } else {
+                        val bitmap =
+                            MediaUtils.getBitmap(requireContext(), list.first(), imageViewHeight)
+                        binding.imageView.setImageBitmap(bitmap)
+                    }
                 }
             }
         })

@@ -61,4 +61,10 @@ dependencies {
     implementation "androidx.camera:camera-view:1.3.0-alpha03"
 
     implementation "com.airbnb.android:lottie:6.1.0"
+
+    //filter
+    implementation'jp.co.cyberagent.android.gpuimage:gpuimage-library:1.4.1'
+    implementation 'com.blankj:utilcodex:1.30.6'
+
+    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
 }

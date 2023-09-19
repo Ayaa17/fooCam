@@ -128,6 +128,9 @@ class CameraFragment : Fragment() {
                 }
 
                 viewModel.orientationObservable.set(rotation)
+
+                // Fixme: work around
+                viewModel.filterState?.orientation = rotation
             }
         }
     }

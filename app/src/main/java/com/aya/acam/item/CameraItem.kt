@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Application
 import android.content.ContentValues
 import android.graphics.Bitmap
+import android.graphics.Matrix
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -453,6 +454,8 @@ class FilterState(
     var bitmap: Bitmap? = null
     var imageResult = ObservableField<Bitmap>()
 
+    var orientation:Float = 0F
+
     init {
         gpuImage.setFilter(gpuImageFilter)
     }
@@ -478,7 +481,7 @@ class FilterState(
             this.cameraController = it.controller?.apply {
 
                 this.setEnabledUseCases(CameraController.IMAGE_ANALYSIS)
-                this.imageAnalysisBackpressureStrategy
+
 
                 //Fixme: change resolution here
 //                val outputSize = CameraController.OutputSize(Size(1280, 720))
@@ -491,7 +494,7 @@ class FilterState(
                     var yuvFrame = yuvUtils.convertToI420(it.image!!)
 
                     //对图像进行旋转（由于回调的相机数据是横着的因此需要旋转90度）
-//                    yuvFrame = yuvUtils.rotate(yuvFrame, 90)
+                    yuvFrame = yuvUtils.rotate(yuvFrame, 90)
                     //根据图像大小创建Bitmap
                     bitmap = Bitmap.createBitmap(
                         yuvFrame.width,
@@ -535,6 +538,7 @@ class FilterState(
     }
 
     override fun shoot() {
+        Timber.d("shoot orientation $orientation")
         val contentValues = ContentValues().apply {
             put(MediaStore.Video.Media.DISPLAY_NAME, "${System.currentTimeMillis()}.jpg")
             put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
@@ -547,9 +551,15 @@ class FilterState(
         )
 
         try {
+
+            val matrix = Matrix()
+            matrix.postRotate(-orientation)
+            val result = Bitmap.createBitmap(bitmap!!, 0, 0, bitmap!!.width, bitmap!!.height, matrix, true)
+
             val outputStream = this.application.contentResolver.openOutputStream(uri!!)
-            bitmap?.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+            result.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
             outputStream?.close()
+            result.recycle()
 
             // 图片保存成功，uri 变量包含了保存图片的 URI
             // Todo: remove toast

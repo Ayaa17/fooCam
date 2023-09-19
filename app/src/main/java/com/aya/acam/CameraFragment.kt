@@ -66,6 +66,16 @@ class CameraFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        binding.shutter.setOnClickListener {
+            binding.shutter.progress = 0f
+            binding.shutter.playAnimation()
+            viewModel.shot(binding.viewPager2.currentItem)
+        }
+
+    }
+
+    override fun onResume() {
+        super.onResume()
         binding.imageView.viewTreeObserver.addOnGlobalLayoutListener(object :
             ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
@@ -85,13 +95,6 @@ class CameraFragment : Fragment() {
                 }
             }
         })
-
-        binding.shutter.setOnClickListener {
-            binding.shutter.progress = 0f
-            binding.shutter.playAnimation()
-            viewModel.shot(binding.viewPager2.currentItem)
-        }
-
     }
 
     private fun navigateToGalleryFragment() {

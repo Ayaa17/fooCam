@@ -114,6 +114,10 @@ object MediaUtils {
     }
 
     fun getBitmap(context: Context, mediaItem: MediaItem, _size: Int = -1): Bitmap? {
+        if (_size == 0) {
+            Timber.e("getBitmap size == 0")
+            return null
+        }
         var thumbnail: Bitmap? = null
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             thumbnail = context.contentResolver.loadThumbnail(

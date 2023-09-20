@@ -60,10 +60,9 @@
             app:layout_constraintBottom_toTopOf="@+id/guideline2"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:tabBackground="@drawable/tab_bg"
             app:tabGravity="center"
             app:tabIndicatorHeight="0dp"
-            app:tabMinWidth="150dp"
+            app:tabMinWidth="50dp"
             app:tabMode="scrollable" />
 
         <ImageView

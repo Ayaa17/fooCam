@@ -24,6 +24,7 @@ import androidx.databinding.ObservableField
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
 import com.aya.acam.CameraManager
+import com.aya.acam.R
 import com.aya.acam.utils.MediaUtils
 import com.theeasiestway.yuv.YuvUtils
 import jp.co.cyberagent.android.gpuimage.*
@@ -53,6 +54,15 @@ abstract class CameraItem {
             TAG_VIDEO -> VIDEO
             TAG_FILTER -> FILTER
             else -> UNKNOWN
+        }
+    }
+
+    fun getTypeIcon(): Int {
+        return when (type) {
+            TAG_PHOTO -> R.drawable.camera_icon
+            TAG_VIDEO -> R.drawable.camera_movie_icon
+            TAG_FILTER -> R.drawable.panorama_icon
+            else -> R.drawable.camera_icon
         }
     }
 

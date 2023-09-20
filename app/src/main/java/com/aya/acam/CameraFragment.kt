@@ -3,6 +3,7 @@ package com.aya.acam
 import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
 import android.view.*
+import android.widget.ImageView
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.viewpager2.widget.ViewPager2
@@ -57,8 +58,10 @@ class CameraFragment : Fragment() {
 
         TabLayoutMediator(binding.tabLayout, binding.viewPager2, true, false) { tab, position ->
             // 根据位置设置选项卡的标题
-            tab.text = viewModel.views[position].getTypeString()
-            tab.customView
+//            tab.text = viewModel.views[position].getTypeString()
+            val resId = viewModel.views[position].getTypeIcon()
+            tab.customView = LayoutInflater.from(requireContext()).inflate(R.layout.cell_tab, null)
+            tab.customView?.findViewById<ImageView>(R.id.imageViewTab)?.setImageResource(resId)
         }.attach()
 
         return binding.root

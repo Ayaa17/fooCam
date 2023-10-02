@@ -232,7 +232,6 @@ class PhotoState(private val application: Application, private val cameraManager
     }
 
     override fun switchFacing() {
-
         val currentFacing = lensFacingState.get()
         val nextState =
             when (currentFacing) {
@@ -240,7 +239,10 @@ class PhotoState(private val application: Application, private val cameraManager
                 CameraManager.LENS_FACING_FRONT -> CameraManager.LENS_FACING_BACK
                 else -> CameraManager.LENS_FACING_UNKNOWN
             }
-
+        if (nextState >= cameraManager?.cameraInfoList?.size ?: 0) {
+            Timber.e("switchFacing: out of cameraInfoList index")
+            return
+        }
         this.lifecycleOwner?.let {
             starCamera(it, nextState)
         }
@@ -408,16 +410,17 @@ class RecordState(
 
     @ExperimentalVideo
     override fun switchFacing() {
-
         val currentFacing = lensFacingState.get()
         val nextState =
             when (currentFacing) {
                 CameraManager.LENS_FACING_BACK -> CameraManager.LENS_FACING_FRONT
                 CameraManager.LENS_FACING_FRONT -> CameraManager.LENS_FACING_BACK
                 else -> CameraManager.LENS_FACING_UNKNOWN
-
             }
-
+        if (nextState >= cameraManager?.cameraInfoList?.size ?: 0) {
+            Timber.e("switchFacing: out of cameraInfoList index")
+            return
+        }
         this.lifecycleOwner?.let {
             starCamera(it, nextState)
         }
@@ -610,7 +613,6 @@ class FilterState(
     }
 
     override fun switchFacing() {
-
         val currentFacing = lensFacingState.get()
         val nextState =
             when (currentFacing) {
@@ -618,7 +620,10 @@ class FilterState(
                 CameraManager.LENS_FACING_FRONT -> CameraManager.LENS_FACING_BACK
                 else -> CameraManager.LENS_FACING_UNKNOWN
             }
-
+        if (nextState >= cameraManager?.cameraInfoList?.size ?: 0) {
+            Timber.e("switchFacing: out of cameraInfoList index")
+            return
+        }
         this.lifecycleOwner?.let {
             starCamera(it, nextState)
         }

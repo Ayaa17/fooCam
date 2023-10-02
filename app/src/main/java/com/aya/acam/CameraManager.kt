@@ -17,10 +17,12 @@ class CameraManager(private val context: Context) {
     private var cameraProvider: ProcessCameraProvider? = null
     private var camera: Camera? = null
     val cameraCapabilities = mutableListOf<Quality>()
+    var cameraInfoList: List<CameraInfo>? = null
 
     init {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProvider = cameraProviderFuture.get()
+        cameraInfoList = cameraProvider?.availableCameraInfos
     }
 
     fun startCamera(previewView: PreviewView, lifecycleOwner: LifecycleOwner) {

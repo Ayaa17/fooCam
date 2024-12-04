@@ -6,14 +6,14 @@ plugins {
 
 android {
     namespace 'com.aya.acam'
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.aya.acam"
         minSdk 26
-        targetSdk 33
-        versionCode 2
-        versionName "1.0.1"
+        targetSdk 34
+        versionCode 3
+        versionName "1.0.2"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -34,6 +34,7 @@ android {
 
     buildFeatures {
         dataBinding true
+        buildConfig true
     }
 }
 
@@ -63,7 +64,9 @@ dependencies {
     implementation "com.airbnb.android:lottie:6.1.0"
 
     //filter
-    implementation'jp.co.cyberagent.android.gpuimage:gpuimage-library:1.4.1'
+//    implementation 'jp.co.cyberagent.android:gpuimage:2.x.x'
+    implementation 'jp.co.cyberagent.android:gpuimage:2.1.0'
+
     implementation 'com.blankj:utilcodex:1.30.6'
 
     implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])

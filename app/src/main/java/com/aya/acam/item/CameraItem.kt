@@ -28,6 +28,15 @@ import com.aya.acam.R
 import com.aya.acam.utils.MediaUtils
 import com.theeasiestway.yuv.YuvUtils
 import jp.co.cyberagent.android.gpuimage.*
+import jp.co.cyberagent.android.gpuimage.filter.GPUImageBoxBlurFilter
+import jp.co.cyberagent.android.gpuimage.filter.GPUImageBulgeDistortionFilter
+import jp.co.cyberagent.android.gpuimage.filter.GPUImageColorInvertFilter
+import jp.co.cyberagent.android.gpuimage.filter.GPUImageDissolveBlendFilter
+import jp.co.cyberagent.android.gpuimage.filter.GPUImageEmbossFilter
+import jp.co.cyberagent.android.gpuimage.filter.GPUImageFilter
+import jp.co.cyberagent.android.gpuimage.filter.GPUImageGrayscaleFilter
+import jp.co.cyberagent.android.gpuimage.filter.GPUImageSharpenFilter
+import jp.co.cyberagent.android.gpuimage.filter.GPUImageSmoothToonFilter
 import timber.log.Timber
 import java.io.IOException
 import java.nio.ByteBuffer
@@ -570,7 +579,9 @@ class FilterState(
             val result = Bitmap.createBitmap(bitmap!!, 0, 0, bitmap!!.width, bitmap!!.height, matrix, true)
 
             val outputStream = this.application.contentResolver.openOutputStream(uri!!)
-            result.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+
+            // fixme: fix !!
+            result.compress(Bitmap.CompressFormat.JPEG, 100, outputStream!!)
             outputStream?.close()
             result.recycle()
 

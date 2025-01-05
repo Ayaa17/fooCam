@@ -6,6 +6,8 @@ fooCam 是一款功能弱小但會逐漸成長的相機應用，旨在為用戶�
 
 拍照功能： fooCam 相機具有直覺的拍照介面，讓您輕鬆捕捉生活中的美好時刻。 拍攝高品質照片，無論是自然風景、人像或日常生活。
 
+[play store](https://play.google.com/store/apps/details?id=com.aya.acam)
+
 ![app](app-demo.png)
 
 ---
